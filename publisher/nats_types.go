@@ -4,6 +4,15 @@ import "github.com/nats-io/nats.go"
 
 type natsEvent struct {
 	*nats.Msg
+	destinationType string
+}
+
+func (n *natsEvent) GetDestination() string {
+	return n.Subject
+}
+
+func (n *natsEvent) GetDestinationType() string {
+	return n.destinationType
 }
 
 func (n *natsEvent) SetHeader(header string, value string) {

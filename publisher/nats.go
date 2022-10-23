@@ -66,7 +66,8 @@ func (n *NatsPublisher[T]) Publish(
 			err = errors.WithStack(err)
 		}
 	}, n.interceptors)(ctx, &natsEvent{
-		Msg: m,
+		Msg:             m,
+		destinationType: n.con.ConnectedUrl(),
 	})
 
 	return err

@@ -18,6 +18,8 @@ type Publisher[T any] interface {
 type AnyEvent interface {
 	SetHeader(header string, value string)
 	GetBody() []byte
+	GetDestination() string
+	GetDestinationType() string
 }
 
 type event[T any] struct {
