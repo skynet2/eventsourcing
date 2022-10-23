@@ -1,6 +1,6 @@
 package publisher
 
-func executeInterceptors(next UnaryClientFunc, mid []UnaryClientInterceptorFunc) UnaryClientFunc {
+func executeInterceptors(next UnaryPublisherFunc, mid []UnaryPublisherInterceptorFunc) UnaryPublisherFunc {
 	for _, interceptor := range mid {
 		next = interceptor(next)
 	}

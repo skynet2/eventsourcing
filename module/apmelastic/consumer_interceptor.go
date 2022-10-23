@@ -18,15 +18,15 @@ const (
 	frameworkName = "skynet2/eventsourcing"
 )
 
-var LoggingMiddleware = func(captureErrors bool) consumer.UnaryInterceptorFunc {
+var ConsumerElasticApmInterceptor = func(captureErrors bool) consumer.UnaryInterceptorFunc {
 	opts := serverOptions{
 		tracer: apm.DefaultTracer(),
 	}
 
-	return func(handler consumer.UnaryFunc) consumer.UnaryFunc {
+	return func(next consumer.UnaryFunc) consumer.UnaryFunc {
 		return func(ctx context.Context, req consumer.MessageRequest) (resp consumer.ConfirmationType, err error) {
 			if !opts.tracer.Recording() {
-				return handler(ctx, req)
+				return next(ctx, req)
 			}
 
 			spec := req.Spec()
@@ -54,7 +54,7 @@ var LoggingMiddleware = func(captureErrors bool) consumer.UnaryInterceptorFunc {
 				}
 			}()
 
-			resp, err = handler(ctx, req)
+			resp, err = next(ctx, req)
 
 			return resp, err
 		}

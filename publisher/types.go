@@ -20,5 +20,5 @@ type AnyEvent interface {
 	GetBody() []byte
 }
 
-type UnaryClientInterceptorFunc = func(next UnaryClientFunc) UnaryClientFunc
-type UnaryClientFunc = func(ctx context.Context, event AnyEvent)
+type UnaryPublisherInterceptorFunc = func(next UnaryPublisherFunc) UnaryPublisherFunc
+type UnaryPublisherFunc = func(ctx context.Context, event AnyEvent)

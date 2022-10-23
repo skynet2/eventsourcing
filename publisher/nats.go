@@ -14,13 +14,13 @@ import (
 type NatsPublisher[T any] struct {
 	con          *nats.Conn
 	subject      string
-	interceptors []UnaryClientInterceptorFunc
+	interceptors []UnaryPublisherInterceptorFunc
 }
 
 func NewNatsPublisher[T any](
 	con *nats.Conn,
 	subject string,
-	interceptors ...UnaryClientInterceptorFunc,
+	interceptors ...UnaryPublisherInterceptorFunc,
 ) Publisher[T] {
 	return &NatsPublisher[T]{
 		con:          con,
