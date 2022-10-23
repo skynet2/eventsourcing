@@ -14,3 +14,11 @@ type Publisher[T any] interface {
 		headers map[string][]string,
 	) error
 }
+
+type AnyEvent interface {
+	SetHeader(header string, value string)
+	GetBody() []byte
+}
+
+type UnaryClientInterceptorFunc = func(next UnaryClientFunc) UnaryClientFunc
+type UnaryClientFunc = func(ctx context.Context, event AnyEvent)

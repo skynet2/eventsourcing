@@ -12,17 +12,20 @@ import (
 )
 
 type NatsPublisher[T any] struct {
-	con     *nats.Conn
-	subject string
+	con          *nats.Conn
+	subject      string
+	interceptors []UnaryClientInterceptorFunc
 }
 
 func NewNatsPublisher[T any](
 	con *nats.Conn,
 	subject string,
+	interceptors ...UnaryClientInterceptorFunc,
 ) Publisher[T] {
 	return &NatsPublisher[T]{
-		con:     con,
-		subject: subject,
+		con:          con,
+		subject:      subject,
+		interceptors: interceptors,
 	}
 }
 
@@ -56,9 +59,15 @@ func (n *NatsPublisher[T]) Publish(
 		}
 	}
 
-	if err = n.con.PublishMsg(m); err != nil {
-		return errors.WithStack(err)
-	}
+	executeInterceptors(func(ctx context.Context, request AnyEvent) {
+		err = n.con.PublishMsg(m)
 
-	return nil
+		if err != nil {
+			err = errors.WithStack(err)
+		}
+	}, n.interceptors)(ctx, &natsEvent{
+		Msg: m,
+	})
+
+	return err
 }
