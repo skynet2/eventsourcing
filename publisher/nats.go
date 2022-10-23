@@ -31,11 +31,11 @@ func NewNatsPublisher[T any](
 
 func (n *NatsPublisher[T]) Publish(
 	ctx context.Context,
-	record *T,
+	record T,
 	meta common.MetaData,
 	headers map[string][]string,
 ) error {
-	data, err := json.Marshal(common.Event[T]{
+	data, err := json.Marshal(event[T]{
 		Record:   record,
 		MetaData: meta,
 	})

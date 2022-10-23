@@ -9,7 +9,7 @@ import (
 type Publisher[T any] interface {
 	Publish(
 		ctx context.Context,
-		record *T,
+		record T,
 		meta common.MetaData,
 		headers map[string][]string,
 	) error
@@ -18,6 +18,11 @@ type Publisher[T any] interface {
 type AnyEvent interface {
 	SetHeader(header string, value string)
 	GetBody() []byte
+}
+
+type event[T any] struct {
+	Record   T               `json:"r"`
+	MetaData common.MetaData `json:"m"`
 }
 
 type UnaryPublisherInterceptorFunc = func(next UnaryPublisherFunc) UnaryPublisherFunc

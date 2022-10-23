@@ -11,7 +11,7 @@ type Consumer[T any] interface {
 	Close() error
 }
 
-type Fn[T any] func(ctx context.Context, event *common.Event[*T]) (ConfirmationType, error)
+type Fn[T any] func(ctx context.Context, event *common.Event[T]) (ConfirmationType, error)
 
 type MessageRequest interface {
 	Header() map[string][]string
