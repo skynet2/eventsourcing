@@ -52,109 +52,128 @@ func NewNatsConsumer[T any](
 }
 
 func (n *NatsConsumer[T]) ConsumeAsync() error {
-	for i := 0; i < n.cfg.Concurrency; i++ {
-		subscription, err := n.jetStream.PullSubscribe(
-			n.cfg.Stream,
-			"",
-			nats.Bind(n.cfg.Stream, n.cfg.ConsumerName),
-		)
+	ch := make(chan error)
+	on := sync.Once{}
 
-		if err != nil {
-			if errors.Is(err, nats.ErrStreamNotFound) && n.consumerOptions.exitOnStreamNotFound {
-				return errors.WithStack(err)
-			} else {
-				sec := 15 * time.Second
+	go func() {
+		for i := 0; i < n.cfg.Concurrency; i++ {
+			subscription, err := n.jetStream.PullSubscribe(
+				n.cfg.Stream,
+				"",
+				nats.Bind(n.cfg.Stream, n.cfg.ConsumerName),
+			)
 
-				log.Warn().Msgf("nats stream %v does not exist. consumer will retry in %s",
-					n.cfg.Stream, sec)
-				time.Sleep(sec)
+			if err != nil {
+				if errors.Is(err, nats.ErrStreamNotFound) && n.consumerOptions.exitOnStreamNotFound {
+					on.Do(func() {
+						ch <- errors.WithStack(err)
+						close(ch)
+					})
+					return
+				} else {
+					on.Do(func() {
+						ch <- nil
+						close(ch)
+					})
 
-				continue
-			}
-		}
+					sec := 15 * time.Second
 
-		n.subscriptions = append(n.subscriptions, subscription)
+					log.Warn().Msgf("nats stream %v does not exist. consumer will retry in %s",
+						n.cfg.Stream, sec)
+					time.Sleep(sec)
 
-		n.wPool.Submit(func() {
-			for {
-				msg, err := subscription.Fetch(1)
-
-				if n.isClosing {
-					if len(msg) > 0 {
-						_ = msg[0].Nak()
-					}
-
-					return // we can ignore everything, as its no longer important here
+					continue
 				}
+			}
 
-				if err != nil {
-					if errors.Is(err, nats.ErrConnectionClosed) {
-						go func() {
-							_ = n.Close() // avoid deadlock
-						}()
+			on.Do(func() {
+				ch <- nil
+				close(ch)
+			})
 
-						return
+			n.subscriptions = append(n.subscriptions, subscription)
+
+			n.wPool.Submit(func() {
+				for {
+					msg, err := subscription.Fetch(1)
+
+					if n.isClosing {
+						if len(msg) > 0 {
+							_ = msg[0].Nak()
+						}
+
+						return // we can ignore everything, as its no longer important here
 					}
 
-					if errors.Is(err, nats.ErrTimeout) {
+					if err != nil {
+						if errors.Is(err, nats.ErrConnectionClosed) {
+							go func() {
+								_ = n.Close() // avoid deadlock
+							}()
+
+							return
+						}
+
+						if errors.Is(err, nats.ErrTimeout) {
+							continue
+						}
+
+						n.logger.Err(errors.Wrap(err, fmt.Sprintf("unhendled error from nats: %+v", err))).Send()
+
 						continue
 					}
 
-					n.logger.Err(errors.Wrap(err, fmt.Sprintf("unhendled error from nats: %+v", err))).Send()
+					if len(msg) == 0 { // should not happen
+						continue
+					}
 
-					continue
+					targetMsg := msg[0]
+
+					ctx, cancel := context.WithCancel(context.Background())
+
+					confirmationType, err := executeInterceptors(func(ctx context.Context, request MessageRequest) (ConfirmationType, error) { //nolint
+						var targetStruct common.Event[T]
+
+						if err2 := json.Unmarshal(targetMsg.Data, &targetStruct); err2 != nil {
+							return ConfirmationTypeNack, err2
+						}
+
+						return n.fn(ctx, &targetStruct)
+					}, n.consumerOptions.interceptors)(ctx, &natsMessage{
+						headers: targetMsg.Header,
+						request: targetMsg.Data,
+						spec: Spec{
+							ConsumerName:  n.cfg.ConsumerName,
+							ConsumerQueue: n.cfg.Stream,
+							Version:       common.FrameworkVersion,
+						},
+					})
+
+					switch confirmationType {
+					case ConfirmationTypeAck:
+						if respErr := targetMsg.Ack(); respErr != nil {
+							n.logger.Err(errors.Wrap(respErr, "can not ack message for default")).Send()
+						}
+					case ConfirmationTypeNack:
+						if respErr := targetMsg.Nak(); respErr != nil {
+							n.logger.Err(errors.Wrap(respErr, "can not nack message")).Send()
+						}
+					default:
+						if respErr := targetMsg.Nak(); respErr != nil {
+							n.logger.Err(errors.Wrap(respErr, "can not nack message for default")).Send()
+						}
+
+						n.logger.Err(errors.New(fmt.Sprintf("unsupported confirmation type %v", confirmationType))).
+							Send()
+					}
+
+					cancel()
 				}
+			})
+		}
+	}()
 
-				if len(msg) == 0 { // should not happen
-					continue
-				}
-
-				targetMsg := msg[0]
-
-				ctx, cancel := context.WithCancel(context.Background())
-
-				confirmationType, err := executeInterceptors(func(ctx context.Context, request MessageRequest) (ConfirmationType, error) { //nolint
-					var targetStruct common.Event[T]
-
-					if err2 := json.Unmarshal(targetMsg.Data, &targetStruct); err2 != nil {
-						return ConfirmationTypeNack, err2
-					}
-
-					return n.fn(ctx, &targetStruct)
-				}, n.consumerOptions.interceptors)(ctx, &natsMessage{
-					headers: targetMsg.Header,
-					request: targetMsg.Data,
-					spec: Spec{
-						ConsumerName:  n.cfg.ConsumerName,
-						ConsumerQueue: n.cfg.Stream,
-						Version:       common.FrameworkVersion,
-					},
-				})
-
-				switch confirmationType {
-				case ConfirmationTypeAck:
-					if respErr := targetMsg.Ack(); respErr != nil {
-						n.logger.Err(errors.Wrap(respErr, "can not ack message for default")).Send()
-					}
-				case ConfirmationTypeNack:
-					if respErr := targetMsg.Nak(); respErr != nil {
-						n.logger.Err(errors.Wrap(respErr, "can not nack message")).Send()
-					}
-				default:
-					if respErr := targetMsg.Nak(); respErr != nil {
-						n.logger.Err(errors.Wrap(respErr, "can not nack message for default")).Send()
-					}
-
-					n.logger.Err(errors.New(fmt.Sprintf("unsupported confirmation type %v", confirmationType))).
-						Send()
-				}
-
-				cancel()
-			}
-		})
-	}
-
-	return nil
+	return <-ch
 }
 
 func (n *NatsConsumer[T]) Close() error {
