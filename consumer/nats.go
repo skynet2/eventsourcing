@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gammazero/workerpool"
 	"github.com/nats-io/nats.go"
@@ -16,29 +17,39 @@ import (
 )
 
 type NatsConsumer[T any] struct {
-	wPool         *workerpool.WorkerPool
-	jetStream     nats.JetStreamContext
-	subscriptions []*nats.Subscription
-	cfg           NatsConsumerConfiguration
-	isClosing     bool
-	fn            Fn[T]
-	interceptors  []UnaryInterceptorFunc
-	logger        zerolog.Logger
-	closeMut      sync.Mutex
+	wPool           *workerpool.WorkerPool
+	jetStream       nats.JetStreamContext
+	subscriptions   []*nats.Subscription
+	cfg             NatsConsumerConfiguration
+	isClosing       bool
+	fn              Fn[T]
+	interceptors    []UnaryInterceptorFunc
+	logger          zerolog.Logger
+	closeMut        sync.Mutex
+	consumerOptions *natsOptions
 }
 
 func NewNatsConsumer[T any](
 	natsJetStream nats.JetStreamContext,
 	cfg NatsConsumerConfiguration,
 	fn Fn[T],
+	options ...func(insertOptions *natsOptions),
 ) Consumer[T] {
-	return &NatsConsumer[T]{
+	consumer := &NatsConsumer[T]{
 		jetStream: natsJetStream,
 		wPool:     workerpool.New(cfg.Concurrency),
 		cfg:       cfg,
 		fn:        fn,
 		logger:    log.Logger,
 	}
+
+	opt := &natsOptions{}
+	for _, p := range options {
+		p(opt)
+	}
+	consumer.consumerOptions = opt
+
+	return consumer
 }
 
 func (n *NatsConsumer[T]) ConsumeAsync() error {
@@ -50,7 +61,17 @@ func (n *NatsConsumer[T]) ConsumeAsync() error {
 		)
 
 		if err != nil {
-			return errors.WithStack(err)
+			if errors.Is(err, nats.ErrStreamNotFound) && n.consumerOptions.exitOnStreamNotFound {
+				return errors.WithStack(err)
+			} else {
+				sec := 15 * time.Second
+
+				log.Warn().Msgf("nats stream %v does not exist. consumer will retry in %s",
+					n.cfg.Stream, sec)
+				time.Sleep(sec)
+
+				continue
+			}
 		}
 
 		n.subscriptions = append(n.subscriptions, subscription)
