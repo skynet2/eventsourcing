@@ -23,7 +23,6 @@ type NatsConsumer[T any] struct {
 	cfg             NatsConsumerConfiguration
 	isClosing       bool
 	fn              Fn[T]
-	interceptors    []UnaryInterceptorFunc
 	logger          zerolog.Logger
 	closeMut        sync.Mutex
 	consumerOptions *natsOptions
@@ -122,7 +121,7 @@ func (n *NatsConsumer[T]) ConsumeAsync() error {
 					}
 
 					return n.fn(ctx, &targetStruct)
-				}, n.interceptors)(ctx, &natsMessage{
+				}, n.consumerOptions.interceptors)(ctx, &natsMessage{
 					headers: targetMsg.Header,
 					request: targetMsg.Data,
 					spec: Spec{
@@ -156,18 +155,6 @@ func (n *NatsConsumer[T]) ConsumeAsync() error {
 	}
 
 	return nil
-}
-
-func (n *NatsConsumer[T]) WithInterceptors(interceptors ...UnaryInterceptorFunc) Consumer[T] {
-	n.interceptors = nil
-
-	for i := len(interceptors) - 1; i >= 0; i-- {
-		if interceptor := interceptors[i]; interceptor != nil {
-			n.interceptors = append(n.interceptors, interceptor)
-		}
-	}
-
-	return n
 }
 
 func (n *NatsConsumer[T]) Close() error {

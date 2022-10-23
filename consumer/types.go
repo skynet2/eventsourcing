@@ -7,7 +7,6 @@ import (
 )
 
 type Consumer[T any] interface {
-	WithInterceptors(interceptors ...UnaryInterceptorFunc) Consumer[T]
 	ConsumeAsync() error
 	Close() error
 }
