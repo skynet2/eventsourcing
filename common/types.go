@@ -1,5 +1,9 @@
 package common
 
+const (
+	FrameworkVersion = "0.0.1"
+)
+
 type Event[T any] struct {
 	Record   *T       `json:"r"`
 	MetaData MetaData `json:"m"`

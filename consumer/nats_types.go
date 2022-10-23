@@ -9,6 +9,7 @@ type NatsConsumerConfiguration struct {
 type natsMessage struct {
 	headers map[string][]string
 	request any
+	spec    Spec
 }
 
 func (n *natsMessage) Header() map[string][]string {
@@ -17,6 +18,10 @@ func (n *natsMessage) Header() map[string][]string {
 
 func (n *natsMessage) Any() any {
 	return n.request
+}
+
+func (n *natsMessage) Spec() Spec {
+	return n.spec
 }
 
 type natsOptions struct {

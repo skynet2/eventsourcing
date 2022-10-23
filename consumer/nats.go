@@ -125,6 +125,11 @@ func (n *NatsConsumer[T]) ConsumeAsync() error {
 				}, n.interceptors)(ctx, &natsMessage{
 					headers: targetMsg.Header,
 					request: targetMsg.Data,
+					spec: Spec{
+						ConsumerName:  n.cfg.ConsumerName,
+						ConsumerQueue: n.cfg.Stream,
+						Version:       common.FrameworkVersion,
+					},
 				})
 
 				switch confirmationType {

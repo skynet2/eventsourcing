@@ -16,14 +16,21 @@ type Fn[T any] func(ctx context.Context, event *common.Event[*T]) (ConfirmationT
 
 type MessageRequest interface {
 	Header() map[string][]string
+	Spec() Spec
 	Any() any
+}
+
+type Spec struct {
+	ConsumerName  string
+	ConsumerQueue string
+	Version       string
 }
 
 type ConfirmationType byte
 
 const (
-	ConfirmationTypeAck  = ConfirmationType(0)
-	ConfirmationTypeNack = ConfirmationType(1)
+	ConfirmationTypeNack = ConfirmationType(0)
+	ConfirmationTypeAck  = ConfirmationType(1)
 )
 
 type UnaryInterceptorFunc = func(next UnaryFunc) UnaryFunc
