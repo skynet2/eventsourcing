@@ -3,7 +3,7 @@ package consumer
 import (
 	"context"
 
-	"github.com/skynet2/eventsourcing/pkg/common"
+	"github.com/skynet2/eventsourcing/common"
 )
 
 type Consumer[T any] interface {

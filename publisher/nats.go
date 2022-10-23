@@ -8,7 +8,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
 
-	"github.com/skynet2/eventsourcing/pkg/common"
+	"github.com/skynet2/eventsourcing/common"
 )
 
 type NatsPublisher[T any] struct {

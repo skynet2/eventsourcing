@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/skynet2/eventsourcing/pkg/common"
+	"github.com/skynet2/eventsourcing/common"
 )
 
 type NatsConsumer[T any] struct {

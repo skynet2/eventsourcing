@@ -3,7 +3,7 @@ package publisher
 import (
 	"context"
 
-	"github.com/skynet2/eventsourcing/pkg/common"
+	"github.com/skynet2/eventsourcing/common"
 )
 
 type Publisher[T any] interface {

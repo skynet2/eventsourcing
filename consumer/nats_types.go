@@ -18,3 +18,13 @@ func (n *natsMessage) Header() map[string][]string {
 func (n *natsMessage) Any() any {
 	return n.request
 }
+
+type natsOptions struct {
+	exitOnStreamNotFound bool
+}
+
+func WithNatsOptionExitOnStreamNotFound(exitOnStreamNotFound bool) func(opt *natsOptions) {
+	return func(opt *natsOptions) {
+		opt.exitOnStreamNotFound = exitOnStreamNotFound
+	}
+}
