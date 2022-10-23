@@ -116,7 +116,7 @@ func startTransaction(
 
 	opts.TraceContext = traceContext
 
-	tx := tracer.StartTransactionOptions(name, "request", opts)
+	tx := tracer.StartTransactionOptions(name, "eventsourcing", opts)
 	tx.Context.SetFramework(frameworkName, version)
 
 	return tx, apm.ContextWithTransaction(ctx, tx)
