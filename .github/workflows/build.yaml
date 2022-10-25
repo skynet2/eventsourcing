@@ -22,7 +22,7 @@ jobs:
       nats:
         image: nats
         volumes:
-          - ./nats-server.conf:/etc/nats/nats-server.conf
+          - /etc/nats
     env:
       ENVIRONMENT: ci
     needs: [ download ]
