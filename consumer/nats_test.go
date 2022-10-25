@@ -323,6 +323,7 @@ func TestNakOnInvalidConfirmationType(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	assert.Equal(t, maxDeliver, gotMessages)
+	assert.NoError(t, srv.Close())
 }
 
 func TestNakOnInvalidJsonMessage(t *testing.T) {
@@ -367,6 +368,7 @@ func TestNakOnInvalidJsonMessage(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	assert.Equal(t, 0, gotMessages)
+	assert.NoError(t, srv.Close())
 }
 
 func TestExitOnStreamNotFound(t *testing.T) {
@@ -387,6 +389,7 @@ func TestExitOnStreamNotFound(t *testing.T) {
 		}, consumer.WithNatsOptionExitOnStreamNotFound(true))
 
 	assert.ErrorContains(t, srv.ConsumeAsync(), "nats: stream not found")
+	assert.NoError(t, srv.Close())
 }
 
 func getNatsUrl() string {
