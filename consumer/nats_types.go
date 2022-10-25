@@ -24,19 +24,19 @@ func (n *natsMessage) Spec() Spec {
 	return n.spec
 }
 
-type natsOptions struct {
+type NatsConsumerOptions struct {
 	exitOnStreamNotFound bool
 	interceptors         []UnaryInterceptorFunc
 }
 
-func WithNatsOptionExitOnStreamNotFound(exitOnStreamNotFound bool) func(opt *natsOptions) {
-	return func(opt *natsOptions) {
+func WithNatsOptionExitOnStreamNotFound(exitOnStreamNotFound bool) func(opt *NatsConsumerOptions) {
+	return func(opt *NatsConsumerOptions) {
 		opt.exitOnStreamNotFound = exitOnStreamNotFound
 	}
 }
 
-func WithNatsOptionInterceptors(interceptors ...UnaryInterceptorFunc) func(opt *natsOptions) {
-	return func(opt *natsOptions) {
+func WithNatsOptionInterceptors(interceptors ...UnaryInterceptorFunc) func(opt *NatsConsumerOptions) {
+	return func(opt *NatsConsumerOptions) {
 		opt.interceptors = nil
 
 		for i := len(interceptors) - 1; i >= 0; i-- {

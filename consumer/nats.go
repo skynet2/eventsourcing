@@ -25,14 +25,14 @@ type NatsConsumer[T any] struct {
 	fn              Fn[T]
 	logger          zerolog.Logger
 	closeMut        sync.Mutex
-	consumerOptions *natsOptions
+	consumerOptions *NatsConsumerOptions
 }
 
 func NewNatsConsumer[T any](
 	natsJetStream nats.JetStreamContext,
 	cfg NatsConsumerConfiguration,
 	fn Fn[T],
-	options ...func(insertOptions *natsOptions),
+	options ...func(opts *NatsConsumerOptions),
 ) Consumer[T] {
 	consumer := &NatsConsumer[T]{
 		jetStream: natsJetStream,
@@ -42,7 +42,7 @@ func NewNatsConsumer[T any](
 		logger:    log.Logger,
 	}
 
-	opt := &natsOptions{}
+	opt := &NatsConsumerOptions{}
 	for _, p := range options {
 		p(opt)
 	}
