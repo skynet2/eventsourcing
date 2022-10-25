@@ -1,0 +1,52 @@
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: rm -rf .git
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./
+          name: code
+          retention-days: 1
+  test:
+    runs-on: ubuntu-latest
+    container: golang:1.19-alpine
+    services:
+      nats:
+        image: nats
+        volumes:
+          - /etc/nats
+    env:
+      ENVIRONMENT: ci
+    needs: [ download ]
+    steps:
+      - run: apk add build-base
+      - uses: actions/download-artifact@v3
+        with:
+          path: /source
+          name: code
+      - run: apk update && apk add --no-cache --update curl openssl git openssh-client build-base && mkdir -p /root/.ssh && mkdir -p /source
+      - run: cd /source && go mod vendor
+      - run: wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /source/
+      - run: cd /source && ./golangci-lint run ./... --timeout 5m
+      - run: cd /source && environment=ci NATS_HOST="nats://nats:4222" go test -json -coverprofile=/root/coverage_temp.txt -covermode=atomic ./... > /root/test.json
+      - run: cat /root/coverage_temp.txt | grep  -v "_mock.go" | grep -v "_mocks.go" > /root/coverage.txt || true
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: /root/coverage.txt
+          flags: unittests
+      - run: cat /root/test.json
+        if: always()
+      - uses: guyarb/golang-test-annotations@v0.5.0
+        if: always()
+        with:
+          test-results: /root/test.json

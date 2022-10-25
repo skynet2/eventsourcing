@@ -7,6 +7,10 @@ type natsEvent struct {
 	destinationType string
 }
 
+func (n *natsEvent) GetHeader(header string) []string {
+	return n.Header.Values(header)
+}
+
 func (n *natsEvent) GetDestination() string {
 	return n.Subject
 }
