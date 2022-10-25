@@ -30,7 +30,7 @@ func TestNatsConsumer(t *testing.T) {
 		Name:        sub,
 		Description: "",
 		Subjects:    []string{sub},
-	})
+	}, nats.Context(context.TODO()))
 	assert.NoError(t, err)
 
 	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
@@ -39,7 +39,7 @@ func TestNatsConsumer(t *testing.T) {
 		AckPolicy:  nats.AckExplicitPolicy,
 		MaxDeliver: 10,
 		AckWait:    100 * time.Second,
-	})
+	}, nats.Context(context.TODO()))
 	assert.NoError(t, err)
 
 	var receivedMessages []common.Event[eventStruct]
@@ -124,7 +124,7 @@ func TestCloseWhileReading(t *testing.T) {
 		Name:        sub,
 		Description: "",
 		Subjects:    []string{sub},
-	})
+	}, nats.Context(context.TODO()))
 	assert.NoError(t, err)
 
 	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
@@ -133,7 +133,7 @@ func TestCloseWhileReading(t *testing.T) {
 		AckPolicy:  nats.AckExplicitPolicy,
 		MaxDeliver: 0,
 		AckWait:    100 * time.Second,
-	})
+	}, nats.Context(context.TODO()))
 	assert.NoError(t, err)
 
 	srv := consumer.NewNatsConsumer[eventStruct](js,
