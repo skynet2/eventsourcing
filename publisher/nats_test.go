@@ -48,7 +48,7 @@ func TestNatsPublisher(t *testing.T) {
 				assert.True(t, firstInterceptorCalled)
 				assert.False(t, secondInterceptorCalled)
 				assert.Equal(t, uuid, event.GetDestination())
-				assert.Equal(t, nats.DefaultURL, event.GetDestinationType())
+				assert.Equal(t, getNatsUrl(), event.GetDestinationType())
 				assert.Equal(t, data, event.GetBody())
 
 				secondInterceptorCalled = true
