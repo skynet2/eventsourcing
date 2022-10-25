@@ -20,7 +20,7 @@ type eventStruct struct {
 }
 
 func TestNatsConsumer(t *testing.T) {
-	con, err := nats.Connect(getNatsUrl())
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(10*time.Second))
 	assert.NoError(t, err)
 	js, err := con.JetStream()
 	assert.NoError(t, err)
@@ -114,7 +114,7 @@ func TestNatsConsumer(t *testing.T) {
 }
 
 func TestCloseWhileReading(t *testing.T) {
-	con, err := nats.Connect(getNatsUrl())
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(10*time.Second))
 	assert.NoError(t, err)
 	js, err := con.JetStream()
 	assert.NoError(t, err)
@@ -160,7 +160,7 @@ func TestCloseWhileReading(t *testing.T) {
 }
 
 func TestCloseNatsConnection(t *testing.T) {
-	con, err := nats.Connect(getNatsUrl())
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(10*time.Second))
 	assert.NoError(t, err)
 	js, err := con.JetStream()
 	assert.NoError(t, err)
@@ -208,7 +208,7 @@ func TestCloseNatsConnection(t *testing.T) {
 }
 
 func TestOnNonExistingStream(t *testing.T) {
-	con, err := nats.Connect(getNatsUrl())
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(10*time.Second))
 	assert.NoError(t, err)
 	js, err := con.JetStream()
 	assert.NoError(t, err)
@@ -231,7 +231,7 @@ func TestOnNonExistingStream(t *testing.T) {
 }
 
 func TestCloseNatsDrainConnection(t *testing.T) {
-	con, err := nats.Connect(getNatsUrl())
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(10*time.Second))
 	assert.NoError(t, err)
 	js, err := con.JetStream()
 	assert.NoError(t, err)
@@ -279,7 +279,7 @@ func TestCloseNatsDrainConnection(t *testing.T) {
 }
 
 func TestNakOnInvalidConfirmationType(t *testing.T) {
-	con, err := nats.Connect(getNatsUrl())
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(10*time.Second))
 	assert.NoError(t, err)
 	js, err := con.JetStream()
 	assert.NoError(t, err)
@@ -326,7 +326,7 @@ func TestNakOnInvalidConfirmationType(t *testing.T) {
 }
 
 func TestNakOnInvalidJsonMessage(t *testing.T) {
-	con, err := nats.Connect(getNatsUrl())
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(10*time.Second))
 	assert.NoError(t, err)
 	js, err := con.JetStream()
 	assert.NoError(t, err)
@@ -371,7 +371,7 @@ func TestNakOnInvalidJsonMessage(t *testing.T) {
 
 func TestExitOnStreamNotFound(t *testing.T) {
 	sub := uuid.NewString()
-	con, err := nats.Connect(getNatsUrl())
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(10*time.Second))
 	assert.NoError(t, err)
 	js, err := con.JetStream()
 	assert.NoError(t, err)
