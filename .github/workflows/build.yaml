@@ -21,7 +21,8 @@ jobs:
     services:
       nats:
         image: nats
-        options: --entrypoint "./nats-server --jetstream"
+        volumes:
+          - nats-server.conf:nats-server.conf
     env:
       ENVIRONMENT: ci
     needs: [ download ]
