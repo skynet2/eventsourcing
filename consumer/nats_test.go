@@ -14,10 +14,6 @@ import (
 	"github.com/skynet2/eventsourcing/consumer"
 )
 
-type eventStruct struct {
-	Text string
-}
-
 //func TestNatsConsumer(t *testing.T) {
 //	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
 //	assert.NoError(t, err)
@@ -213,13 +209,14 @@ func TestOnNonExistingStream(t *testing.T) {
 	assert.NoError(t, err)
 	sub := uuid.NewString()
 
-	srv := consumer.NewNatsConsumer[eventStruct](js,
+
+	srv := consumer.NewNatsConsumer[consumer.Spec](js,
 		consumer.NatsConsumerConfiguration{
 			Concurrency:  1,
 			ConsumerName: sub,
 			Stream:       sub,
 		},
-		func(ctx context.Context, event *common.Event[eventStruct]) (consumer.ConfirmationType, error) {
+		func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
 			return consumer.ConfirmationTypeNack, nil
 		})
 
