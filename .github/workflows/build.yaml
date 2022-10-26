@@ -20,11 +20,12 @@ jobs:
     container: golang:1.19-alpine
     services:
       nats:
-        image: nats-streaming
+        image: nats:latest
     env:
       ENVIRONMENT: ci
     needs: [ download ]
     steps:
+      - run: docker ps
       - run: apk add build-base
       - uses: actions/download-artifact@v3
         with:
