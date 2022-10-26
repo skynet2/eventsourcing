@@ -184,6 +184,8 @@ func (n *NatsConsumer[T]) Close() error {
 		return nil
 	}
 
+	n.isClosing = true
+
 	var finalErr error
 
 	if n.wPool != nil {

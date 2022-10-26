@@ -20,9 +20,7 @@ jobs:
     container: golang:1.19-alpine
     services:
       nats:
-        image: nats
-        volumes:
-          - /etc/nats
+        image: skydev/nats-jetstream:latest
     env:
       ENVIRONMENT: ci
     needs: [ download ]
@@ -46,7 +44,7 @@ jobs:
           flags: unittests
       - run: cat /root/test.json
         if: always()
-      - uses: guyarb/golang-test-annotations@v0.5.0
+      - uses: guyarb/golang-test-annotations@v0.6.0
         if: always()
         with:
           test-results: /root/test.json
