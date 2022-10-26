@@ -1,8 +1,22 @@
 package consumer_test
 
-//type eventStruct struct {
-//	Text string
-//}
+import (
+	"context"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/skynet2/eventsourcing/common"
+	"github.com/skynet2/eventsourcing/consumer"
+)
+
+type eventStruct struct {
+	Text string
+}
 
 //func TestNatsConsumer(t *testing.T) {
 //	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
@@ -192,28 +206,28 @@ package consumer_test
 //	assert.NoError(t, srv.Close())
 //}
 //
-//func TestOnNonExistingStream(t *testing.T) {
-//	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
-//	assert.NoError(t, err)
-//	js, err := con.JetStream()
-//	assert.NoError(t, err)
-//	sub := uuid.NewString()
-//
-//	srv := consumer.NewNatsConsumer[eventStruct](js,
-//		consumer.NatsConsumerConfiguration{
-//			Concurrency:  1,
-//			ConsumerName: sub,
-//			Stream:       sub,
-//		},
-//		func(ctx context.Context, event *common.Event[eventStruct]) (consumer.ConfirmationType, error) {
-//			return consumer.ConfirmationTypeNack, nil
-//		})
-//
-//	assert.NoError(t, srv.ConsumeAsync())
-//
-//	time.Sleep(17 * time.Second)
-//	assert.NoError(t, srv.Close())
-//}
+func TestOnNonExistingStream(t *testing.T) {
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
+	assert.NoError(t, err)
+	js, err := con.JetStream()
+	assert.NoError(t, err)
+	sub := uuid.NewString()
+
+	srv := consumer.NewNatsConsumer[eventStruct](js,
+		consumer.NatsConsumerConfiguration{
+			Concurrency:  1,
+			ConsumerName: sub,
+			Stream:       sub,
+		},
+		func(ctx context.Context, event *common.Event[eventStruct]) (consumer.ConfirmationType, error) {
+			return consumer.ConfirmationTypeNack, nil
+		})
+
+	assert.NoError(t, srv.ConsumeAsync())
+
+	time.Sleep(17 * time.Second)
+	assert.NoError(t, srv.Close())
+}
 //
 //func TestCloseNatsDrainConnection(t *testing.T) {
 //	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
@@ -377,10 +391,10 @@ package consumer_test
 //	assert.NoError(t, srv.Close())
 //}
 
-//func getNatsUrl() string {
-//	if env := os.Getenv("JETSTREAM_HOST"); len(env) > 0 {
-//		return env
-//	}
-//
-//	return nats.DefaultURL
-//}
+func getNatsUrl() string {
+	if env := os.Getenv("JETSTREAM_HOST"); len(env) > 0 {
+		return env
+	}
+
+	return nats.DefaultURL
+}
