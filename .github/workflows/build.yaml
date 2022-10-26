@@ -25,7 +25,6 @@ jobs:
       ENVIRONMENT: ci
     needs: [ download ]
     steps:
-      - run: docker ps
       - run: apk add build-base
       - uses: actions/download-artifact@v3
         with:
