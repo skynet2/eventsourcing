@@ -324,51 +324,51 @@ func TestOnNonExistingStream(t *testing.T) {
 //	con.Close()
 //}
 
-func TestNakOnInvalidJsonMessage(t *testing.T) {
-	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
-	assert.NoError(t, err)
-	js, err := con.JetStream()
-	assert.NoError(t, err)
-	sub := uuid.NewString() + "invalidjsonmessage"
-
-	_, err = js.AddStream(&nats.StreamConfig{
-		Name:        sub,
-		Description: "",
-		Subjects:    []string{sub},
-	})
-	assert.NoError(t, err)
-
-	maxDeliver := 30
-	gotMessages := 0
-	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
-		Durable:    sub,
-		Name:       sub,
-		AckPolicy:  nats.AckExplicitPolicy,
-		MaxDeliver: maxDeliver,
-		AckWait:    100 * time.Second,
-	})
-	assert.NoError(t, err)
-
-	srv := consumer.NewNatsConsumer[consumer.Spec](js,
-		consumer.NatsConsumerConfiguration{
-			Concurrency:  1,
-			ConsumerName: sub,
-			Stream:       sub,
-		},
-		func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
-			gotMessages += 1
-			return consumer.ConfirmationTypeAck, nil
-		})
-
-	assert.NoError(t, con.Publish(sub, []byte("{")))
-	assert.NoError(t, srv.ConsumeAsync())
-
-	time.Sleep(3 * time.Second)
-
-	assert.Equal(t, 0, gotMessages)
-	assert.NoError(t, srv.Close())
-	con.Close()
-}
+//func TestNakOnInvalidJsonMessage(t *testing.T) {
+//	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
+//	assert.NoError(t, err)
+//	js, err := con.JetStream()
+//	assert.NoError(t, err)
+//	sub := uuid.NewString() + "invalidjsonmessage"
+//
+//	_, err = js.AddStream(&nats.StreamConfig{
+//		Name:        sub,
+//		Description: "",
+//		Subjects:    []string{sub},
+//	})
+//	assert.NoError(t, err)
+//
+//	maxDeliver := 30
+//	gotMessages := 0
+//	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
+//		Durable:    sub,
+//		Name:       sub,
+//		AckPolicy:  nats.AckExplicitPolicy,
+//		MaxDeliver: maxDeliver,
+//		AckWait:    100 * time.Second,
+//	})
+//	assert.NoError(t, err)
+//
+//	srv := consumer.NewNatsConsumer[consumer.Spec](js,
+//		consumer.NatsConsumerConfiguration{
+//			Concurrency:  1,
+//			ConsumerName: sub,
+//			Stream:       sub,
+//		},
+//		func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
+//			gotMessages += 1
+//			return consumer.ConfirmationTypeAck, nil
+//		})
+//
+//	assert.NoError(t, con.Publish(sub, []byte("{")))
+//	assert.NoError(t, srv.ConsumeAsync())
+//
+//	time.Sleep(3 * time.Second)
+//
+//	assert.Equal(t, 0, gotMessages)
+//	assert.NoError(t, srv.Close())
+//	con.Close()
+//}
 
 func TestExitOnStreamNotFound(t *testing.T) {
 	sub := uuid.NewString() + "exitNotFound"
