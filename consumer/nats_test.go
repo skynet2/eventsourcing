@@ -330,7 +330,7 @@ func TestNakOnInvalidJsonMessage(t *testing.T) {
 	assert.NoError(t, err)
 	js, err := con.JetStream()
 	assert.NoError(t, err)
-	sub := uuid.NewString()
+	sub := uuid.NewString() + "invalidjsonmessage"
 
 	_, err = js.AddStream(&nats.StreamConfig{
 		Name:        sub,
@@ -372,7 +372,7 @@ func TestNakOnInvalidJsonMessage(t *testing.T) {
 }
 
 func TestExitOnStreamNotFound(t *testing.T) {
-	sub := uuid.NewString()
+	sub := uuid.NewString() + "exitNotFound"
 	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
 	assert.NoError(t, err)
 	js, err := con.JetStream()
