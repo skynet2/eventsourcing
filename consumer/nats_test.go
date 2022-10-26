@@ -370,7 +370,7 @@ func TestOnNonExistingStream(t *testing.T) {
 //	con.Close()
 //}
 
-func TestExitOnStreamNotFound(t *testing.T) {
+/*func TestExitOnStreamNotFound(t *testing.T) {
 	sub := uuid.NewString() + "exitNotFound"
 	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
 	assert.NoError(t, err)
@@ -391,7 +391,7 @@ func TestExitOnStreamNotFound(t *testing.T) {
 	assert.NoError(t, srv.Close())
 	con.Close()
 }
-
+*/
 func getNatsUrl() string {
 	if env := os.Getenv("JETSTREAM_HOST"); len(env) > 0 {
 		return env
