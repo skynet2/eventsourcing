@@ -395,7 +395,7 @@ func TestOnNonExistingStream(t *testing.T) {
 	}
 */
 func getNatsUrl() string {
-	if env := os.Getenv("JETSTREAM_HOST"); len(env) > 0 {
+	if env := os.Getenv("NATS_HOST"); len(env) > 0 {
 		return env
 	}
 
