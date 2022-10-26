@@ -109,99 +109,100 @@ func TestNatsConsumer(t *testing.T) {
 	assert.True(t, secondInterceptorCalled)
 }
 
-//	func TestCloseWhileReading(t *testing.T) {
-//		con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
-//		assert.NoError(t, err)
-//		js, err := con.JetStream()
-//		assert.NoError(t, err)
-//		sub := uuid.NewString()
-//
-//		_, err = js.AddStream(&nats.StreamConfig{
-//			Name:        sub,
-//			Description: "",
-//			Subjects:    []string{sub},
-//		}, nats.Context(context.TODO()))
-//		assert.NoError(t, err)
-//
-//		_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
-//			Durable:    sub,
-//			Name:       sub,
-//			AckPolicy:  nats.AckExplicitPolicy,
-//			MaxDeliver: 0,
-//			AckWait:    100 * time.Second,
-//		}, nats.Context(context.TODO()))
-//		assert.NoError(t, err)
-//
-//		srv := consumer.NewNatsConsumer[eventStruct](js,
-//			consumer.NatsConsumerConfiguration{
-//				Concurrency:  10,
-//				ConsumerName: sub,
-//				Stream:       sub,
-//			},
-//			func(ctx context.Context, event *common.Event[eventStruct]) (consumer.ConfirmationType, error) {
-//				return consumer.ConfirmationTypeNack, nil
-//			})
-//
-//		assert.NoError(t, srv.ConsumeAsync())
-//
-//		pub := publisher.NewNatsPublisher[eventStruct](con, sub)
-//
-//		for i := 0; i < 100; i++ {
-//			assert.NoError(t, pub.Publish(context.TODO(), eventStruct{}, common.MetaData{}, nil))
-//		}
-//
-//		time.Sleep(3 * time.Second)
-//
-//		assert.NoError(t, srv.Close())
-//	}
-//
-//	func TestCloseNatsConnection(t *testing.T) {
-//		con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
-//		assert.NoError(t, err)
-//		js, err := con.JetStream()
-//		assert.NoError(t, err)
-//		sub := uuid.NewString()
-//
-//		_, err = js.AddStream(&nats.StreamConfig{
-//			Name:        sub,
-//			Description: "",
-//			Subjects:    []string{sub},
-//		})
-//		assert.NoError(t, err)
-//
-//		_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
-//			Durable:    sub,
-//			Name:       sub,
-//			AckPolicy:  nats.AckExplicitPolicy,
-//			MaxDeliver: 0,
-//			AckWait:    100 * time.Second,
-//		})
-//		assert.NoError(t, err)
-//
-//		srv := consumer.NewNatsConsumer[eventStruct](js,
-//			consumer.NatsConsumerConfiguration{
-//				Concurrency:  10,
-//				ConsumerName: sub,
-//				Stream:       sub,
-//			},
-//			func(ctx context.Context, event *common.Event[eventStruct]) (consumer.ConfirmationType, error) {
-//				return consumer.ConfirmationTypeNack, nil
-//			})
-//
-//		assert.NoError(t, srv.ConsumeAsync())
-//
-//		pub := publisher.NewNatsPublisher[eventStruct](con, sub)
-//
-//		for i := 0; i < 100; i++ {
-//			assert.NoError(t, pub.Publish(context.TODO(), eventStruct{}, common.MetaData{}, nil))
-//		}
-//
-//		time.Sleep(3 * time.Second)
-//		con.Close()
-//		time.Sleep(1 * time.Second)
-//
-//		assert.NoError(t, srv.Close())
-//	}
+func TestCloseWhileReading(t *testing.T) {
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
+	assert.NoError(t, err)
+	js, err := con.JetStream()
+	assert.NoError(t, err)
+	sub := uuid.NewString()
+
+	_, err = js.AddStream(&nats.StreamConfig{
+		Name:        sub,
+		Description: "",
+		Subjects:    []string{sub},
+	}, nats.Context(context.TODO()))
+	assert.NoError(t, err)
+
+	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
+		Durable:    sub,
+		Name:       sub,
+		AckPolicy:  nats.AckExplicitPolicy,
+		MaxDeliver: 0,
+		AckWait:    100 * time.Second,
+	}, nats.Context(context.TODO()))
+	assert.NoError(t, err)
+
+	srv := consumer.NewNatsConsumer[consumer.Spec](js,
+		consumer.NatsConsumerConfiguration{
+			Concurrency:  10,
+			ConsumerName: sub,
+			Stream:       sub,
+		},
+		func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
+			return consumer.ConfirmationTypeNack, nil
+		})
+
+	assert.NoError(t, srv.ConsumeAsync())
+
+	pub := publisher.NewNatsPublisher[consumer.Spec](con, sub)
+
+	for i := 0; i < 100; i++ {
+		assert.NoError(t, pub.Publish(context.TODO(), consumer.Spec{}, common.MetaData{}, nil))
+	}
+
+	time.Sleep(3 * time.Second)
+
+	assert.NoError(t, srv.Close())
+}
+
+func TestCloseNatsConnection(t *testing.T) {
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
+	assert.NoError(t, err)
+	js, err := con.JetStream()
+	assert.NoError(t, err)
+	sub := uuid.NewString()
+
+	_, err = js.AddStream(&nats.StreamConfig{
+		Name:        sub,
+		Description: "",
+		Subjects:    []string{sub},
+	})
+	assert.NoError(t, err)
+
+	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
+		Durable:    sub,
+		Name:       sub,
+		AckPolicy:  nats.AckExplicitPolicy,
+		MaxDeliver: 0,
+		AckWait:    100 * time.Second,
+	})
+	assert.NoError(t, err)
+
+	srv := consumer.NewNatsConsumer[consumer.Spec](js,
+		consumer.NatsConsumerConfiguration{
+			Concurrency:  10,
+			ConsumerName: sub,
+			Stream:       sub,
+		},
+		func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
+			return consumer.ConfirmationTypeNack, nil
+		})
+
+	assert.NoError(t, srv.ConsumeAsync())
+
+	pub := publisher.NewNatsPublisher[consumer.Spec](con, sub)
+
+	for i := 0; i < 100; i++ {
+		assert.NoError(t, pub.Publish(context.TODO(), consumer.Spec{}, common.MetaData{}, nil))
+	}
+
+	time.Sleep(3 * time.Second)
+	con.Close()
+	time.Sleep(1 * time.Second)
+
+	assert.NoError(t, srv.Close())
+}
+
 func TestOnNonExistingStream(t *testing.T) {
 	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
 	assert.NoError(t, err)
@@ -226,174 +227,172 @@ func TestOnNonExistingStream(t *testing.T) {
 	con.Close()
 }
 
-//
-//func TestCloseNatsDrainConnection(t *testing.T) {
-//	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
-//	assert.NoError(t, err)
-//	js, err := con.JetStream()
-//	assert.NoError(t, err)
-//	sub := uuid.NewString()
-//
-//	_, err = js.AddStream(&nats.StreamConfig{
-//		Name:        sub,
-//		Description: "",
-//		Subjects:    []string{sub},
-//	})
-//	assert.NoError(t, err)
-//
-//	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
-//		Durable:    sub,
-//		Name:       sub,
-//		AckPolicy:  nats.AckExplicitPolicy,
-//		MaxDeliver: 0,
-//		AckWait:    100 * time.Second,
-//	})
-//	assert.NoError(t, err)
-//
-//	srv := consumer.NewNatsConsumer[consumer.Spec](js,
-//		consumer.NatsConsumerConfiguration{
-//			Concurrency:  10,
-//			ConsumerName: sub,
-//			Stream:       sub,
-//		},
-//		func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
-//			return consumer.ConfirmationTypeNack, nil
-//		})
-//
-//	assert.NoError(t, srv.ConsumeAsync())
-//
-//	pub := publisher.NewNatsPublisher[consumer.Spec](con, sub)
-//
-//	for i := 0; i < 100; i++ {
-//		assert.NoError(t, pub.Publish(context.TODO(), consumer.Spec{}, common.MetaData{}, nil))
-//	}
-//
-//	time.Sleep(3 * time.Second)
-//	assert.NoError(t, con.Drain())
-//	time.Sleep(1 * time.Second)
-//
-//	assert.NoError(t, srv.Close())
-//	con.Close()
-//}
+func TestCloseNatsDrainConnection(t *testing.T) {
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
+	assert.NoError(t, err)
+	js, err := con.JetStream()
+	assert.NoError(t, err)
+	sub := uuid.NewString()
 
-//func TestNakOnInvalidConfirmationType(t *testing.T) {
-//	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
-//	assert.NoError(t, err)
-//	js, err := con.JetStream()
-//	assert.NoError(t, err)
-//	sub := uuid.NewString()
-//
-//	_, err = js.AddStream(&nats.StreamConfig{
-//		Name:        sub,
-//		Description: "",
-//		Subjects:    []string{sub},
-//	})
-//	assert.NoError(t, err)
-//
-//	maxDeliver := 30
-//	gotMessages := 0
-//	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
-//		Durable:    sub,
-//		Name:       sub,
-//		AckPolicy:  nats.AckExplicitPolicy,
-//		MaxDeliver: maxDeliver,
-//		AckWait:    100 * time.Second,
-//	})
-//	assert.NoError(t, err)
-//
-//	srv := consumer.NewNatsConsumer[consumer.Spec](js,
-//		consumer.NatsConsumerConfiguration{
-//			Concurrency:  1,
-//			ConsumerName: sub,
-//			Stream:       sub,
-//		},
-//		func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
-//			gotMessages += 1
-//			return 100, nil
-//		})
-//
-//	assert.NoError(t, srv.ConsumeAsync())
-//
-//	pub := publisher.NewNatsPublisher[consumer.Spec](con, sub)
-//
-//	assert.NoError(t, pub.Publish(context.TODO(), consumer.Spec{}, common.MetaData{}, nil))
-//
-//	time.Sleep(5 * time.Second)
-//
-//	assert.Equal(t, maxDeliver, gotMessages)
-//	assert.NoError(t, srv.Close())
-//	con.Close()
-//}
+	_, err = js.AddStream(&nats.StreamConfig{
+		Name:        sub,
+		Description: "",
+		Subjects:    []string{sub},
+	})
+	assert.NoError(t, err)
 
-//func TestNakOnInvalidJsonMessage(t *testing.T) {
-//	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
-//	assert.NoError(t, err)
-//	js, err := con.JetStream()
-//	assert.NoError(t, err)
-//	sub := uuid.NewString() + "invalidjsonmessage"
-//
-//	_, err = js.AddStream(&nats.StreamConfig{
-//		Name:        sub,
-//		Description: "",
-//		Subjects:    []string{sub},
-//	})
-//	assert.NoError(t, err)
-//
-//	maxDeliver := 30
-//	gotMessages := 0
-//	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
-//		Durable:    sub,
-//		Name:       sub,
-//		AckPolicy:  nats.AckExplicitPolicy,
-//		MaxDeliver: maxDeliver,
-//		AckWait:    100 * time.Second,
-//	})
-//	assert.NoError(t, err)
-//
-//	srv := consumer.NewNatsConsumer[consumer.Spec](js,
-//		consumer.NatsConsumerConfiguration{
-//			Concurrency:  1,
-//			ConsumerName: sub,
-//			Stream:       sub,
-//		},
-//		func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
-//			gotMessages += 1
-//			return consumer.ConfirmationTypeAck, nil
-//		})
-//
-//	assert.NoError(t, con.Publish(sub, []byte("{")))
-//	assert.NoError(t, srv.ConsumeAsync())
-//
-//	time.Sleep(3 * time.Second)
-//
-//	assert.Equal(t, 0, gotMessages)
-//	assert.NoError(t, srv.Close())
-//	con.Close()
-//}
+	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
+		Durable:    sub,
+		Name:       sub,
+		AckPolicy:  nats.AckExplicitPolicy,
+		MaxDeliver: 0,
+		AckWait:    100 * time.Second,
+	})
+	assert.NoError(t, err)
 
-/*
-	func TestExitOnStreamNotFound(t *testing.T) {
-		sub := uuid.NewString() + "exitNotFound"
-		con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
-		assert.NoError(t, err)
-		js, err := con.JetStream()
-		assert.NoError(t, err)
+	srv := consumer.NewNatsConsumer[consumer.Spec](js,
+		consumer.NatsConsumerConfiguration{
+			Concurrency:  10,
+			ConsumerName: sub,
+			Stream:       sub,
+		},
+		func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
+			return consumer.ConfirmationTypeNack, nil
+		})
 
-		srv := consumer.NewNatsConsumer[consumer.Spec](js,
-			consumer.NatsConsumerConfiguration{
-				Concurrency:  1,
-				ConsumerName: sub,
-				Stream:       sub,
-			},
-			func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
-				return consumer.ConfirmationTypeAck, nil
-			}, consumer.WithNatsOptionExitOnStreamNotFound(true))
+	assert.NoError(t, srv.ConsumeAsync())
 
-		assert.ErrorContains(t, srv.ConsumeAsync(), "nats: stream not found")
-		assert.NoError(t, srv.Close())
-		con.Close()
+	pub := publisher.NewNatsPublisher[consumer.Spec](con, sub)
+
+	for i := 0; i < 100; i++ {
+		assert.NoError(t, pub.Publish(context.TODO(), consumer.Spec{}, common.MetaData{}, nil))
 	}
-*/
+
+	time.Sleep(3 * time.Second)
+	assert.NoError(t, con.Drain())
+	time.Sleep(1 * time.Second)
+
+	assert.NoError(t, srv.Close())
+	con.Close()
+}
+
+func TestNakOnInvalidConfirmationType(t *testing.T) {
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
+	assert.NoError(t, err)
+	js, err := con.JetStream()
+	assert.NoError(t, err)
+	sub := uuid.NewString()
+
+	_, err = js.AddStream(&nats.StreamConfig{
+		Name:        sub,
+		Description: "",
+		Subjects:    []string{sub},
+	})
+	assert.NoError(t, err)
+
+	maxDeliver := 30
+	gotMessages := 0
+	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
+		Durable:    sub,
+		Name:       sub,
+		AckPolicy:  nats.AckExplicitPolicy,
+		MaxDeliver: maxDeliver,
+		AckWait:    100 * time.Second,
+	})
+	assert.NoError(t, err)
+
+	srv := consumer.NewNatsConsumer[consumer.Spec](js,
+		consumer.NatsConsumerConfiguration{
+			Concurrency:  1,
+			ConsumerName: sub,
+			Stream:       sub,
+		},
+		func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
+			gotMessages += 1
+			return 100, nil
+		})
+
+	assert.NoError(t, srv.ConsumeAsync())
+
+	pub := publisher.NewNatsPublisher[consumer.Spec](con, sub)
+
+	assert.NoError(t, pub.Publish(context.TODO(), consumer.Spec{}, common.MetaData{}, nil))
+
+	time.Sleep(5 * time.Second)
+
+	assert.Equal(t, maxDeliver, gotMessages)
+	assert.NoError(t, srv.Close())
+	con.Close()
+}
+
+func TestNakOnInvalidJsonMessage(t *testing.T) {
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
+	assert.NoError(t, err)
+	js, err := con.JetStream()
+	assert.NoError(t, err)
+	sub := uuid.NewString() + "invalidjsonmessage"
+
+	_, err = js.AddStream(&nats.StreamConfig{
+		Name:        sub,
+		Description: "",
+		Subjects:    []string{sub},
+	})
+	assert.NoError(t, err)
+
+	maxDeliver := 30
+	gotMessages := 0
+	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
+		Durable:    sub,
+		Name:       sub,
+		AckPolicy:  nats.AckExplicitPolicy,
+		MaxDeliver: maxDeliver,
+		AckWait:    100 * time.Second,
+	})
+	assert.NoError(t, err)
+
+	srv := consumer.NewNatsConsumer[consumer.Spec](js,
+		consumer.NatsConsumerConfiguration{
+			Concurrency:  1,
+			ConsumerName: sub,
+			Stream:       sub,
+		},
+		func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
+			gotMessages += 1
+			return consumer.ConfirmationTypeAck, nil
+		})
+
+	assert.NoError(t, con.Publish(sub, []byte("{")))
+	assert.NoError(t, srv.ConsumeAsync())
+
+	time.Sleep(3 * time.Second)
+
+	assert.Equal(t, 0, gotMessages)
+	assert.NoError(t, srv.Close())
+	con.Close()
+}
+
+func TestExitOnStreamNotFound(t *testing.T) {
+	sub := uuid.NewString() + "exitNotFound"
+	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
+	assert.NoError(t, err)
+	js, err := con.JetStream()
+	assert.NoError(t, err)
+
+	srv := consumer.NewNatsConsumer[consumer.Spec](js,
+		consumer.NatsConsumerConfiguration{
+			Concurrency:  1,
+			ConsumerName: sub,
+			Stream:       sub,
+		},
+		func(ctx context.Context, event *common.Event[consumer.Spec]) (consumer.ConfirmationType, error) {
+			return consumer.ConfirmationTypeAck, nil
+		}, consumer.WithNatsOptionExitOnStreamNotFound(true))
+
+	assert.ErrorContains(t, srv.ConsumeAsync(), "nats: stream not found")
+	assert.NoError(t, srv.Close())
+	con.Close()
+}
+
 func getNatsUrl() string {
 	if env := os.Getenv("NATS_HOST"); len(env) > 0 {
 		return env
