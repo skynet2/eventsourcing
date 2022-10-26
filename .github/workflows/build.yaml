@@ -20,7 +20,7 @@ jobs:
     container: golang:1.19-alpine
     services:
       nats:
-        image: nats:latest
+        image: skydev/nats-jetstream:latest
     env:
       ENVIRONMENT: ci
     needs: [ download ]
