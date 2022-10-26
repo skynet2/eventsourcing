@@ -20,9 +20,7 @@ jobs:
     container: golang:1.19-alpine
     services:
       nats:
-        image: nats
-        volumes:
-          - $(pwd)/etc/nats:/etc/nats
+        image: nats-streaming
     env:
       ENVIRONMENT: ci
     needs: [ download ]
