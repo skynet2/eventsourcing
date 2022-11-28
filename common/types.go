@@ -10,8 +10,17 @@ type Event[T any] struct {
 }
 
 type MetaData struct {
-	CrudOperation       ChangeEvenType `json:"co"`
-	CrudOperationReason string         `json:"cor"`
+	CrudOperation       ChangeEvenType    `json:"co"`
+	CrudOperationReason string            `json:"cor"`
+	Extra               map[string]string `json:"e"`
+}
+
+func (m *MetaData) GetExtra() map[string]string {
+	if m.Extra != nil {
+		return m.Extra
+	}
+
+	return map[string]string{}
 }
 
 type ChangeEvenType int8
