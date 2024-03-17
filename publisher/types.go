@@ -11,7 +11,7 @@ type Publisher[T any] interface {
 		ctx context.Context,
 		record T,
 		meta common.MetaData,
-		headers map[string][]string,
+		headers *PublishOptions,
 	) error
 }
 
@@ -26,6 +26,11 @@ type AnyEvent interface {
 type event[T any] struct {
 	Record   T               `json:"r"`
 	MetaData common.MetaData `json:"m"`
+}
+
+type PublishOptions struct {
+	Headers       map[string][]string
+	CustomSubject string
 }
 
 type UnaryPublisherInterceptorFunc = func(next UnaryPublisherFunc) UnaryPublisherFunc

@@ -68,8 +68,10 @@ func TestNatsPublisher(t *testing.T) {
 			}
 		})
 
-	assert.NoError(t, pub.Publish(context.TODO(), record, meta, map[string][]string{
-		"header1": {"value1"},
+	assert.NoError(t, pub.Publish(context.TODO(), record, meta, &publisher.PublishOptions{
+		Headers: map[string][]string{
+			"header1": {"value1"},
+		},
 	}))
 
 	con.Close()

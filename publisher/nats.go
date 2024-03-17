@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/cockroachdb/errors"
 	"github.com/nats-io/nats.go"
-	"github.com/pkg/errors"
 
 	"github.com/skynet2/eventsourcing/common"
 )
@@ -33,7 +33,7 @@ func (n *NatsPublisher[T]) Publish(
 	ctx context.Context,
 	record T,
 	meta common.MetaData,
-	headers map[string][]string,
+	publishOptions *PublishOptions,
 ) error {
 	data, err := json.Marshal(event[T]{
 		Record:   record,
@@ -44,8 +44,13 @@ func (n *NatsPublisher[T]) Publish(
 		return errors.WithStack(err)
 	}
 
+	subject := n.subject
+	if publishOptions != nil && publishOptions.CustomSubject != "" {
+		subject = publishOptions.CustomSubject
+	}
+
 	m := &nats.Msg{
-		Subject: n.subject,
+		Subject: subject,
 		Data:    data,
 		Header: map[string][]string{
 			"co":  {fmt.Sprint(meta.CrudOperation)},
@@ -53,8 +58,8 @@ func (n *NatsPublisher[T]) Publish(
 		},
 	}
 
-	if len(headers) > 0 {
-		for k, v := range headers {
+	if publishOptions != nil && len(publishOptions.Headers) > 0 {
+		for k, v := range publishOptions.Headers {
 			m.Header[k] = v
 		}
 	}
