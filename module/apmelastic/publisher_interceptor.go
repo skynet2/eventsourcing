@@ -23,9 +23,9 @@ var PublisherElasticApmInterceptor = func() publisher.UnaryPublisherInterceptorF
 				)
 
 				span.Context.SetLabel("destination", req.GetDestination())
-				span.Context.SetDestinationService(apm.DestinationServiceSpanContext{
-					Name:     req.GetDestinationType(),
-					Resource: req.GetDestination(),
+				span.Context.SetServiceTarget(apm.ServiceTargetSpanContext{
+					Name: req.GetDestinationType(),
+					Type: req.GetDestination(),
 				})
 
 				defer span.End()
