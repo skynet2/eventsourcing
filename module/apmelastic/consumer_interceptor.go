@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"go.elastic.co/apm/module/apmhttp/v2"
 
@@ -18,7 +19,7 @@ const (
 	frameworkName = "skynet2/eventsourcing"
 )
 
-var ConsumerElasticApmInterceptor = func(captureErrors bool) consumer.UnaryInterceptorFunc {
+var ConsumerElasticApmInterceptor = func(captureErrors bool, exitOnPanic bool) consumer.UnaryInterceptorFunc {
 	opts := serverOptions{
 		tracer: apm.DefaultTracer(),
 	}
@@ -44,7 +45,12 @@ var ConsumerElasticApmInterceptor = func(captureErrors bool) consumer.UnaryInter
 					e.Handled = false
 					e.Send()
 
-					panic(r)
+					zerolog.Ctx(ctx).Error().Msgf("panic: %+v", r)
+					if exitOnPanic {
+						panic(r)
+					}
+
+					return
 				}
 
 				setTransactionResult(tx, resp)
