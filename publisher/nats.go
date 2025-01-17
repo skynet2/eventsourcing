@@ -2,19 +2,20 @@ package publisher
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/cockroachdb/errors"
 	"github.com/nats-io/nats.go"
 
 	"github.com/skynet2/eventsourcing/common"
+	"github.com/skynet2/eventsourcing/serialization"
 )
 
 type NatsPublisher[T any] struct {
 	con          *nats.Conn
 	subject      string
 	interceptors []UnaryPublisherInterceptorFunc
+	encoder      Serializer
 }
 
 func NewNatsPublisher[T any](
@@ -26,6 +27,7 @@ func NewNatsPublisher[T any](
 		con:          con,
 		subject:      subject,
 		interceptors: interceptors,
+		encoder:      serialization.NewJSON(),
 	}
 }
 
@@ -35,7 +37,7 @@ func (n *NatsPublisher[T]) Publish(
 	meta common.MetaData,
 	publishOptions *PublishOptions,
 ) error {
-	data, err := json.Marshal(event[T]{
+	data, err := n.encoder.Encode(event[T]{
 		Record:   record,
 		MetaData: meta,
 	})
@@ -53,8 +55,9 @@ func (n *NatsPublisher[T]) Publish(
 		Subject: subject,
 		Data:    data,
 		Header: map[string][]string{
-			"co":  {fmt.Sprint(meta.CrudOperation)},
-			"cor": {fmt.Sprint(meta.CrudOperationReason)},
+			"co":                     {fmt.Sprint(meta.CrudOperation)},
+			"cor":                    {fmt.Sprint(meta.CrudOperationReason)},
+			common.ContentTypeHeader: {string(n.encoder.ContentType())},
 		},
 	}
 
