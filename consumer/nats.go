@@ -138,7 +138,7 @@ func (n *NatsConsumer[T]) ConsumeAsync() error {
 					ctx, cancel := context.WithCancel(context.Background())
 
 					confirmationType, err := executeInterceptors(func(ctx context.Context, request MessageRequest) (ConfirmationType, error) { //nolint
-						var targetStruct common.Event[T]
+						//var targetStruct common.Event[T]
 
 						contentType := common.ContentTypeJSON
 						contentHeaderVal := request.Header()[common.ContentTypeHeader]

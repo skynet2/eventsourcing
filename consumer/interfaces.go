@@ -1,5 +1,7 @@
 package consumer
 
-type Decoder interface {
-	Decode(data []byte, result any) error
+import "github.com/skynet2/eventsourcing/common"
+
+type Decoder[T any] interface {
+	Decode(data []byte) (common.Event[T], error)
 }
