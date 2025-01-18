@@ -13,8 +13,8 @@ func NewJSON[T any]() *JSON[T] {
 	return &JSON[T]{}
 }
 
-func (j *JSON[T]) Encode(record any) ([]byte, error) {
-	return json.Marshal(record)
+func (j *JSON[T]) Encode(event common.Event[T]) ([]byte, error) {
+	return json.Marshal(event)
 }
 
 func (j *JSON[T]) Decode(data []byte) (*common.Event[T], error) {

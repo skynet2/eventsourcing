@@ -48,8 +48,8 @@ func (n *NatsPublisher[T]) Publish(
 		encoder = n.encoders[common.ContentType(publishOptions.Headers[common.ContentTypeHeader][0])]
 	}
 
-	data, err := encoder.Encode(event[T]{
-		Record:   record,
+	data, err := encoder.Encode(common.Event[T]{
+		Record:   &record,
 		MetaData: meta,
 	})
 

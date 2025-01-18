@@ -16,13 +16,26 @@ func NewProtoJSONEncoder[T any]() *ProtoJSON[T] {
 	return &ProtoJSON[T]{}
 }
 
-func (j *ProtoJSON[T]) Encode(record any) ([]byte, error) {
-	event, ok := record.(protoreflect.ProtoMessage)
+func (j *ProtoJSON[T]) Encode(event common.Event[T]) ([]byte, error) {
+	cc, ok := any(event.Record).(protoreflect.ProtoMessage)
 	if !ok {
-		return nil, errors.Newf("can not cast type %T to protoreflect.ProtoMessage", record)
+		return nil, errors.Newf("can not cast type %T to protoreflect.ProtoMessage", event.Record)
 	}
 
-	return protojson.Marshal(event)
+	recordBytes, err := protojson.Marshal(cc)
+	if err != nil {
+		return nil, err
+	}
+
+	raw := struct {
+		Record   json.RawMessage `json:"r"`
+		MetaData common.MetaData `json:"m"`
+	}{
+		Record:   recordBytes,
+		MetaData: event.MetaData,
+	}
+
+	return json.Marshal(raw)
 }
 
 func (j *ProtoJSON[T]) Decode(data []byte) (*common.Event[T], error) {
@@ -36,13 +49,11 @@ func (j *ProtoJSON[T]) Decode(data []byte) (*common.Event[T], error) {
 	}
 
 	realEvent := &common.Event[T]{
-		Record:   nil,
 		MetaData: raw.MetaData,
 	}
 
 	var targetData T
-	var wrap interface{} = targetData
-	cc, ok := wrap.(protoreflect.ProtoMessage)
+	cc, ok := any(&targetData).(protoreflect.ProtoMessage)
 	if !ok {
 		return nil, errors.Newf("can not cast type %T to protoreflect.ProtoMessage", targetData)
 	}
@@ -52,6 +63,7 @@ func (j *ProtoJSON[T]) Decode(data []byte) (*common.Event[T], error) {
 		return nil, err
 	}
 
+	realEvent.Record = &targetData
 	return realEvent, nil
 }
 
