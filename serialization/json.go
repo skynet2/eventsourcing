@@ -6,21 +6,26 @@ import (
 	"github.com/skynet2/eventsourcing/common"
 )
 
-type JSON struct {
+type JSON[T any] struct {
 }
 
-func NewJSON() *JSON {
-	return &JSON{}
+func NewJSON[T any]() *JSON[T] {
+	return &JSON[T]{}
 }
 
-func (j *JSON) Encode(record any) ([]byte, error) {
+func (j *JSON[T]) Encode(record any) ([]byte, error) {
 	return json.Marshal(record)
 }
 
-func (j *JSON) Decode(data []byte, record any) error {
-	return json.Unmarshal(data, record)
+func (j *JSON[T]) Decode(data []byte) (*common.Event[T], error) {
+	var targetStruct common.Event[T]
+	if err := json.Unmarshal(data, &targetStruct); err != nil {
+		return nil, err
+	}
+
+	return &targetStruct, nil
 }
 
-func (j *JSON) ContentType() common.ContentType {
+func (j *JSON[T]) ContentType() common.ContentType {
 	return common.ContentTypeJSON
 }

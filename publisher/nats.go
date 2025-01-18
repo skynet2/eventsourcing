@@ -3,7 +3,6 @@ package publisher
 import (
 	"context"
 	"fmt"
-
 	"github.com/cockroachdb/errors"
 	"github.com/nats-io/nats.go"
 
@@ -15,7 +14,7 @@ type NatsPublisher[T any] struct {
 	con          *nats.Conn
 	subject      string
 	interceptors []UnaryPublisherInterceptorFunc
-	encoder      Serializer
+	encoders     map[common.ContentType]Serializer[T]
 }
 
 func NewNatsPublisher[T any](
@@ -23,12 +22,18 @@ func NewNatsPublisher[T any](
 	subject string,
 	interceptors ...UnaryPublisherInterceptorFunc,
 ) Publisher[T] {
-	return &NatsPublisher[T]{
+	publisher := &NatsPublisher[T]{
 		con:          con,
 		subject:      subject,
 		interceptors: interceptors,
-		encoder:      serialization.NewJSON(),
+		encoders:     make(map[common.ContentType]Serializer[T]),
 	}
+
+	for _, enc := range serialization.Supported[T]() {
+		publisher.encoders[enc.ContentType()] = enc
+	}
+
+	return publisher
 }
 
 func (n *NatsPublisher[T]) Publish(
@@ -37,7 +42,13 @@ func (n *NatsPublisher[T]) Publish(
 	meta common.MetaData,
 	publishOptions *PublishOptions,
 ) error {
-	data, err := n.encoder.Encode(event[T]{
+	encoder := n.encoders[common.ContentTypeJSON]
+
+	if publishOptions != nil && len(publishOptions.Headers[common.ContentTypeHeader]) > 0 {
+		encoder = n.encoders[common.ContentType(publishOptions.Headers[common.ContentTypeHeader][0])]
+	}
+
+	data, err := encoder.Encode(event[T]{
 		Record:   record,
 		MetaData: meta,
 	})
@@ -55,9 +66,8 @@ func (n *NatsPublisher[T]) Publish(
 		Subject: subject,
 		Data:    data,
 		Header: map[string][]string{
-			"co":                     {fmt.Sprint(meta.CrudOperation)},
-			"cor":                    {fmt.Sprint(meta.CrudOperationReason)},
-			common.ContentTypeHeader: {string(n.encoder.ContentType())},
+			"co":  {fmt.Sprint(meta.CrudOperation)},
+			"cor": {fmt.Sprint(meta.CrudOperationReason)},
 		},
 	}
 

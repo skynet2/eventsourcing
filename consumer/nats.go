@@ -26,7 +26,7 @@ type NatsConsumer[T any] struct {
 	logger          zerolog.Logger
 	closeMut        sync.Mutex
 	consumerOptions *NatsConsumerOptions
-	decoders        map[common.ContentType]Decoder
+	decoders        map[common.ContentType]Decoder[T]
 }
 
 func NewNatsConsumer[T any](
@@ -41,10 +41,10 @@ func NewNatsConsumer[T any](
 		cfg:       cfg,
 		fn:        fn,
 		logger:    log.Logger,
-		decoders:  map[common.ContentType]Decoder{},
+		decoders:  map[common.ContentType]Decoder[T]{},
 	}
 
-	for _, enc := range serialization.Supported() {
+	for _, enc := range serialization.Supported[T]() {
 		consumer.decoders[enc.ContentType()] = enc
 	}
 
@@ -138,8 +138,6 @@ func (n *NatsConsumer[T]) ConsumeAsync() error {
 					ctx, cancel := context.WithCancel(context.Background())
 
 					confirmationType, err := executeInterceptors(func(ctx context.Context, request MessageRequest) (ConfirmationType, error) { //nolint
-						//var targetStruct common.Event[T]
-
 						contentType := common.ContentTypeJSON
 						contentHeaderVal := request.Header()[common.ContentTypeHeader]
 
@@ -153,11 +151,12 @@ func (n *NatsConsumer[T]) ConsumeAsync() error {
 								errors.New(fmt.Sprintf("no decoder found for content type %v", contentType))
 						}
 
-						if err2 := decoder.Decode(targetMsg.Data, &targetStruct); err2 != nil {
+						event, err2 := decoder.Decode(targetMsg.Data)
+						if err2 != nil {
 							return ConfirmationTypeNack, err2
 						}
 
-						return n.fn(ctx, &targetStruct)
+						return n.fn(ctx, event)
 					}, n.consumerOptions.interceptors)(ctx, &natsMessage{
 						headers: targetMsg.Header,
 						request: targetMsg.Data,

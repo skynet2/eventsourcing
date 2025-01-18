@@ -10,18 +10,19 @@ import (
 	"github.com/skynet2/eventsourcing/common"
 )
 
-type ProtoJSON[T any] struct {
-	enc *JSON
-}
+type ProtoJSON[T any] struct{}
 
 func NewProtoJSONEncoder[T any]() *ProtoJSON[T] {
-	return &ProtoJSON[T]{
-		enc: NewJSON(),
-	}
+	return &ProtoJSON[T]{}
 }
 
 func (j *ProtoJSON[T]) Encode(record any) ([]byte, error) {
-	return j.enc.Encode(record)
+	event, ok := record.(protoreflect.ProtoMessage)
+	if !ok {
+		return nil, errors.Newf("can not cast type %T to protoreflect.ProtoMessage", record)
+	}
+
+	return protojson.Marshal(event)
 }
 
 func (j *ProtoJSON[T]) Decode(data []byte) (*common.Event[T], error) {

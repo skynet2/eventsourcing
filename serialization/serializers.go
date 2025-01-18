@@ -2,15 +2,15 @@ package serialization
 
 import "github.com/skynet2/eventsourcing/common"
 
-type Encoding interface {
+type Encoding[T any] interface {
 	Encode(record any) ([]byte, error)
-	Decode(data []byte, record any) error
+	Decode(data []byte) (*common.Event[T], error)
 	ContentType() common.ContentType
 }
 
-func Supported() []Encoding {
-	return []Encoding{
-		NewJSON(),
-		NewProtoJSONEncoder(),
+func Supported[T any]() []Encoding[T] {
+	return []Encoding[T]{
+		NewJSON[T](),
+		NewProtoJSONEncoder[T](),
 	}
 }
