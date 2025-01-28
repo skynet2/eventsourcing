@@ -14,7 +14,6 @@ import (
 type NatsPublisher[T any] struct {
 	con     *nats.Conn
 	subject string
-	encoder Serializer[T]
 	opts    *publishOptions[T]
 }
 
