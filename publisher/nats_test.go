@@ -13,6 +13,7 @@ import (
 
 	"github.com/skynet2/eventsourcing/common"
 	"github.com/skynet2/eventsourcing/publisher"
+	"github.com/skynet2/eventsourcing/serialization"
 )
 
 func TestNatsPublisher(t *testing.T) {
@@ -43,30 +44,31 @@ func TestNatsPublisher(t *testing.T) {
 	assert.NoError(t, err)
 
 	pub := publisher.NewNatsPublisher[eventStruct](con, uuid,
-		func(next publisher.UnaryPublisherFunc) publisher.UnaryPublisherFunc {
-			return func(ctx context.Context, event publisher.AnyEvent) {
-				assert.True(t, firstInterceptorCalled)
-				assert.False(t, secondInterceptorCalled)
-				assert.Equal(t, uuid, event.GetDestination())
-				assert.Equal(t, getNatsUrl(), event.GetDestinationType())
-				assert.Equal(t, data, event.GetBody())
+		publisher.WithInterceptors[eventStruct](
+			func(next publisher.UnaryPublisherFunc) publisher.UnaryPublisherFunc {
+				return func(ctx context.Context, event publisher.AnyEvent) {
+					assert.True(t, firstInterceptorCalled)
+					assert.False(t, secondInterceptorCalled)
+					assert.Equal(t, uuid, event.GetDestination())
+					assert.Equal(t, getNatsUrl(), event.GetDestinationType())
+					assert.Equal(t, data, event.GetBody())
 
-				secondInterceptorCalled = true
-				assert.Equal(t, "value1", event.GetHeader("header1")[0])
-				assert.Equal(t, "inter1_value", event.GetHeader("inter1_header")[0])
-				next(ctx, event)
-			}
-		}, func(next publisher.UnaryPublisherFunc) publisher.UnaryPublisherFunc {
-			return func(ctx context.Context, event publisher.AnyEvent) {
-				assert.False(t, firstInterceptorCalled)
-				assert.False(t, secondInterceptorCalled)
-				firstInterceptorCalled = true
-				assert.Equal(t, "value1", event.GetHeader("header1")[0])
-				event.SetHeader("inter1_header", "inter1_value")
-				assert.Equal(t, data, event.GetBody())
-				next(ctx, event)
-			}
-		})
+					secondInterceptorCalled = true
+					assert.Equal(t, "value1", event.GetHeader("header1")[0])
+					assert.Equal(t, "inter1_value", event.GetHeader("inter1_header")[0])
+					next(ctx, event)
+				}
+			}, func(next publisher.UnaryPublisherFunc) publisher.UnaryPublisherFunc {
+				return func(ctx context.Context, event publisher.AnyEvent) {
+					assert.False(t, firstInterceptorCalled)
+					assert.False(t, secondInterceptorCalled)
+					firstInterceptorCalled = true
+					assert.Equal(t, "value1", event.GetHeader("header1")[0])
+					event.SetHeader("inter1_header", "inter1_value")
+					assert.Equal(t, data, event.GetBody())
+					next(ctx, event)
+				}
+			}))
 
 	assert.NoError(t, pub.Publish(context.TODO(), record, meta, &publisher.PublishOptions{
 		Headers: map[string][]string{
@@ -102,35 +104,36 @@ func TestNatsPublisherWithProtoJson(t *testing.T) {
 	assert.NoError(t, err)
 
 	pub := publisher.NewNatsPublisher[common.TestStructure](con, uuid,
-		func(next publisher.UnaryPublisherFunc) publisher.UnaryPublisherFunc {
-			return func(ctx context.Context, event publisher.AnyEvent) {
-				assert.True(t, firstInterceptorCalled)
-				assert.False(t, secondInterceptorCalled)
-				assert.Equal(t, uuid, event.GetDestination())
-				assert.Equal(t, getNatsUrl(), event.GetDestinationType())
-				assert.Equal(t, data, event.GetBody())
+		publisher.WithEncoder[common.TestStructure](serialization.NewProtoJSONEncoder[common.TestStructure]()),
+		publisher.WithInterceptors[common.TestStructure](
+			func(next publisher.UnaryPublisherFunc) publisher.UnaryPublisherFunc {
+				return func(ctx context.Context, event publisher.AnyEvent) {
+					assert.True(t, firstInterceptorCalled)
+					assert.False(t, secondInterceptorCalled)
+					assert.Equal(t, uuid, event.GetDestination())
+					assert.Equal(t, getNatsUrl(), event.GetDestinationType())
+					assert.Equal(t, data, event.GetBody())
 
-				secondInterceptorCalled = true
-				assert.Equal(t, "value1", event.GetHeader("header1")[0])
-				assert.Equal(t, "inter1_value", event.GetHeader("inter1_header")[0])
-				next(ctx, event)
-			}
-		}, func(next publisher.UnaryPublisherFunc) publisher.UnaryPublisherFunc {
-			return func(ctx context.Context, event publisher.AnyEvent) {
-				assert.False(t, firstInterceptorCalled)
-				assert.False(t, secondInterceptorCalled)
-				firstInterceptorCalled = true
-				assert.Equal(t, "value1", event.GetHeader("header1")[0])
-				event.SetHeader("inter1_header", "inter1_value")
-				assert.Equal(t, data, event.GetBody())
-				next(ctx, event)
-			}
-		})
+					secondInterceptorCalled = true
+					assert.Equal(t, "value1", event.GetHeader("header1")[0])
+					assert.Equal(t, "inter1_value", event.GetHeader("inter1_header")[0])
+					next(ctx, event)
+				}
+			}, func(next publisher.UnaryPublisherFunc) publisher.UnaryPublisherFunc {
+				return func(ctx context.Context, event publisher.AnyEvent) {
+					assert.False(t, firstInterceptorCalled)
+					assert.False(t, secondInterceptorCalled)
+					firstInterceptorCalled = true
+					assert.Equal(t, "value1", event.GetHeader("header1")[0])
+					event.SetHeader("inter1_header", "inter1_value")
+					assert.Equal(t, data, event.GetBody())
+					next(ctx, event)
+				}
+			}))
 
 	assert.NoError(t, pub.Publish(context.TODO(), record, meta, &publisher.PublishOptions{
 		Headers: map[string][]string{
-			"header1":                {"value1"},
-			common.ContentTypeHeader: {string(common.ContentTypeProtoJSON)},
+			"header1": {"value1"},
 		},
 	}))
 

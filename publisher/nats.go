@@ -3,6 +3,7 @@ package publisher
 import (
 	"context"
 	"fmt"
+
 	"github.com/cockroachdb/errors"
 	"github.com/nats-io/nats.go"
 
@@ -11,27 +12,50 @@ import (
 )
 
 type NatsPublisher[T any] struct {
-	con          *nats.Conn
-	subject      string
+	con     *nats.Conn
+	subject string
+	encoder Serializer[T]
+	opts    *publishOptions[T]
+}
+
+type publishOptions[T any] struct {
 	interceptors []UnaryPublisherInterceptorFunc
-	encoders     map[common.ContentType]Serializer[T]
+	encoder      Serializer[T]
+}
+
+type OptionFn[T any] func(*publishOptions[T])
+
+func WithInterceptors[T any](interceptors ...UnaryPublisherInterceptorFunc) OptionFn[T] {
+	return func(o *publishOptions[T]) {
+		o.interceptors = interceptors
+	}
+}
+
+func WithEncoder[T any](encoder Serializer[T]) OptionFn[T] {
+	return func(o *publishOptions[T]) {
+		o.encoder = encoder
+	}
 }
 
 func NewNatsPublisher[T any](
 	con *nats.Conn,
 	subject string,
-	interceptors ...UnaryPublisherInterceptorFunc,
+	options ...OptionFn[T],
 ) Publisher[T] {
 	publisher := &NatsPublisher[T]{
-		con:          con,
-		subject:      subject,
-		interceptors: interceptors,
-		encoders:     make(map[common.ContentType]Serializer[T]),
+		con:     con,
+		subject: subject,
 	}
 
-	for _, enc := range serialization.Supported[T]() {
-		publisher.encoders[enc.ContentType()] = enc
+	defaultOpt := &publishOptions[T]{
+		interceptors: []UnaryPublisherInterceptorFunc{},
+		encoder:      serialization.NewJSON[T](),
 	}
+	for _, fn := range options {
+		fn(defaultOpt)
+	}
+
+	publisher.opts = defaultOpt
 
 	return publisher
 }
@@ -42,13 +66,7 @@ func (n *NatsPublisher[T]) Publish(
 	meta common.MetaData,
 	publishOptions *PublishOptions,
 ) error {
-	encoder := n.encoders[common.ContentTypeJSON]
-
-	if publishOptions != nil && len(publishOptions.Headers[common.ContentTypeHeader]) > 0 {
-		encoder = n.encoders[common.ContentType(publishOptions.Headers[common.ContentTypeHeader][0])]
-	}
-
-	data, err := encoder.Encode(common.Event[T]{
+	data, err := n.opts.encoder.Encode(common.Event[T]{
 		Record:   &record,
 		MetaData: meta,
 	})
@@ -66,8 +84,9 @@ func (n *NatsPublisher[T]) Publish(
 		Subject: subject,
 		Data:    data,
 		Header: map[string][]string{
-			"co":  {fmt.Sprint(meta.CrudOperation)},
-			"cor": {fmt.Sprint(meta.CrudOperationReason)},
+			"co":                     {fmt.Sprint(meta.CrudOperation)},
+			"cor":                    {fmt.Sprint(meta.CrudOperationReason)},
+			common.ContentTypeHeader: {string(n.opts.encoder.ContentType())},
 		},
 	}
 
@@ -83,7 +102,7 @@ func (n *NatsPublisher[T]) Publish(
 		if err != nil {
 			err = errors.WithStack(err)
 		}
-	}, n.interceptors)(ctx, &natsEvent{
+	}, n.opts.interceptors)(ctx, &natsEvent{
 		Msg:             m,
 		destinationType: n.con.ConnectedUrl(),
 	})
