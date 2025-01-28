@@ -161,7 +161,7 @@ func TestPublishWithCancelledContext(t *testing.T) {
 }
 
 func TestMarshalInvalid(t *testing.T) {
-	pub := publisher.NewNatsPublisher[any](nil, "", nil)
+	pub := publisher.NewNatsPublisher[any](nil, "")
 	ch := make(chan int)
 
 	assert.ErrorContains(t, pub.Publish(context.TODO(), ch, common.MetaData{}, nil),
