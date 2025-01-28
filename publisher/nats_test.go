@@ -104,7 +104,7 @@ func TestNatsPublisherWithProtoJson(t *testing.T) {
 	assert.NoError(t, err)
 
 	pub := publisher.NewNatsPublisher[common.TestStructure](con, uuid,
-		publisher.WithEncoder[common.TestStructure](serialization.NewProtoJSONEncoder[common.TestStructure]()),
+		publisher.WithSerializer[common.TestStructure](serialization.NewProtoJSONEncoder[common.TestStructure]()),
 		publisher.WithInterceptors[common.TestStructure](
 			func(next publisher.UnaryPublisherFunc) publisher.UnaryPublisherFunc {
 				return func(ctx context.Context, event publisher.AnyEvent) {
@@ -131,7 +131,7 @@ func TestNatsPublisherWithProtoJson(t *testing.T) {
 				}
 			}))
 
-	assert.NoError(t, pub.Publish(context.TODO(), record, meta, &publisher.PublishOptions{
+	assert.NoError(t, pub.Publish(context.TODO(), record, meta, &publisher.PublishOptions{ // nolint
 		Headers: map[string][]string{
 			"header1": {"value1"},
 		},

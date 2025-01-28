@@ -19,7 +19,7 @@ type NatsPublisher[T any] struct {
 
 type publishOptions[T any] struct {
 	interceptors []UnaryPublisherInterceptorFunc
-	encoder      Serializer[T]
+	serializer   Serializer[T]
 }
 
 type OptionFn[T any] func(*publishOptions[T])
@@ -30,9 +30,9 @@ func WithInterceptors[T any](interceptors ...UnaryPublisherInterceptorFunc) Opti
 	}
 }
 
-func WithEncoder[T any](encoder Serializer[T]) OptionFn[T] {
+func WithSerializer[T any](serializer Serializer[T]) OptionFn[T] {
 	return func(o *publishOptions[T]) {
-		o.encoder = encoder
+		o.serializer = serializer
 	}
 }
 
@@ -48,7 +48,7 @@ func NewNatsPublisher[T any](
 
 	defaultOpt := &publishOptions[T]{
 		interceptors: []UnaryPublisherInterceptorFunc{},
-		encoder:      serialization.NewJSON[T](),
+		serializer:   serialization.NewJSON[T](),
 	}
 	for _, fn := range options {
 		fn(defaultOpt)
@@ -65,7 +65,7 @@ func (n *NatsPublisher[T]) Publish(
 	meta common.MetaData,
 	publishOptions *PublishOptions,
 ) error {
-	data, err := n.opts.encoder.Encode(common.Event[T]{
+	data, err := n.opts.serializer.Marshal(common.Event[T]{
 		Record:   &record,
 		MetaData: meta,
 	})
@@ -85,7 +85,7 @@ func (n *NatsPublisher[T]) Publish(
 		Header: map[string][]string{
 			"co":                     {fmt.Sprint(meta.CrudOperation)},
 			"cor":                    {fmt.Sprint(meta.CrudOperationReason)},
-			common.ContentTypeHeader: {string(n.opts.encoder.ContentType())},
+			common.ContentTypeHeader: {string(n.opts.serializer.ContentType())},
 		},
 	}
 

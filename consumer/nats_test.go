@@ -189,7 +189,7 @@ func TestNatsConsumerWithProtoJson(t *testing.T) {
 	}
 
 	for _, e := range expected {
-		assert.NoError(t, pub.Publish(context.TODO(), *e.Record, e.MetaData, &publisher.PublishOptions{
+		assert.NoError(t, pub.Publish(context.TODO(), *e.Record, e.MetaData, &publisher.PublishOptions{ // nolint
 			Headers: map[string][]string{
 				common.ContentTypeHeader: {string(common.ContentTypeProtoJSON)},
 			},

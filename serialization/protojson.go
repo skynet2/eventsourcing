@@ -16,7 +16,7 @@ func NewProtoJSONEncoder[T any]() *ProtoJSON[T] {
 	return &ProtoJSON[T]{}
 }
 
-func (j *ProtoJSON[T]) Encode(event common.Event[T]) ([]byte, error) {
+func (j *ProtoJSON[T]) Marshal(event common.Event[T]) ([]byte, error) {
 	cc, ok := any(event.Record).(protoreflect.ProtoMessage)
 	if !ok {
 		return nil, errors.Newf("can not cast type %T to protoreflect.ProtoMessage", event.Record)
@@ -38,7 +38,7 @@ func (j *ProtoJSON[T]) Encode(event common.Event[T]) ([]byte, error) {
 	return json.Marshal(raw)
 }
 
-func (j *ProtoJSON[T]) Decode(data []byte) (*common.Event[T], error) {
+func (j *ProtoJSON[T]) Unmarshal(data []byte) (*common.Event[T], error) {
 	raw := struct {
 		Record   json.RawMessage `json:"r"`
 		MetaData common.MetaData `json:"m"`

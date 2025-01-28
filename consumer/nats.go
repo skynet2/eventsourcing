@@ -151,7 +151,7 @@ func (n *NatsConsumer[T]) ConsumeAsync() error {
 								errors.New(fmt.Sprintf("no decoder found for content type %v", contentType))
 						}
 
-						event, err2 := decoder.Decode(targetMsg.Data)
+						event, err2 := decoder.Unmarshal(targetMsg.Data)
 						if err2 != nil {
 							return ConfirmationTypeNack, err2
 						}
