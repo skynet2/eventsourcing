@@ -23,11 +23,6 @@ type AnyEvent interface {
 	GetDestinationType() string
 }
 
-type event[T any] struct {
-	Record   T               `json:"r"`
-	MetaData common.MetaData `json:"m"`
-}
-
 type PublishOptions struct {
 	Headers       map[string][]string
 	CustomSubject string

@@ -31,3 +31,10 @@ const (
 	ChangeEventTypeUpdated = ChangeEvenType(2)
 	ChangeEventTypeDeleted = ChangeEvenType(3)
 )
+
+type ContentType string
+
+const (
+	ContentTypeJSON      = ContentType("j")
+	ContentTypeProtoJSON = ContentType("pj")
+)

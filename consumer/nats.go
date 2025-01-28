@@ -2,7 +2,6 @@ package consumer
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/skynet2/eventsourcing/common"
+	"github.com/skynet2/eventsourcing/serialization"
 )
 
 type NatsConsumer[T any] struct {
@@ -26,6 +26,7 @@ type NatsConsumer[T any] struct {
 	logger          zerolog.Logger
 	closeMut        sync.Mutex
 	consumerOptions *NatsConsumerOptions
+	decoders        map[common.ContentType]Decoder[T]
 }
 
 func NewNatsConsumer[T any](
@@ -40,6 +41,11 @@ func NewNatsConsumer[T any](
 		cfg:       cfg,
 		fn:        fn,
 		logger:    log.Logger,
+		decoders:  map[common.ContentType]Decoder[T]{},
+	}
+
+	for _, enc := range serialization.Supported[T]() {
+		consumer.decoders[enc.ContentType()] = enc
 	}
 
 	opt := &NatsConsumerOptions{}
@@ -132,13 +138,25 @@ func (n *NatsConsumer[T]) ConsumeAsync() error {
 					ctx, cancel := context.WithCancel(context.Background())
 
 					confirmationType, err := executeInterceptors(func(ctx context.Context, request MessageRequest) (ConfirmationType, error) { //nolint
-						var targetStruct common.Event[T]
+						contentType := common.ContentTypeJSON
+						contentHeaderVal := request.Header()[common.ContentTypeHeader]
 
-						if err2 := json.Unmarshal(targetMsg.Data, &targetStruct); err2 != nil {
+						if len(contentHeaderVal) > 0 {
+							contentType = common.ContentType(contentHeaderVal[0])
+						}
+
+						decoder, ok := n.decoders[contentType]
+						if !ok {
+							return ConfirmationTypeNack,
+								errors.New(fmt.Sprintf("no decoder found for content type %v", contentType))
+						}
+
+						event, err2 := decoder.Unmarshal(targetMsg.Data)
+						if err2 != nil {
 							return ConfirmationTypeNack, err2
 						}
 
-						return n.fn(ctx, &targetStruct)
+						return n.fn(ctx, event)
 					}, n.consumerOptions.interceptors)(ctx, &natsMessage{
 						headers: targetMsg.Header,
 						request: targetMsg.Data,

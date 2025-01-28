@@ -109,6 +109,103 @@ func TestNatsConsumer(t *testing.T) {
 	assert.True(t, secondInterceptorCalled)
 }
 
+func TestNatsConsumerWithProtoJson(t *testing.T) {
+	con, err := nats.Connect(getNatsUrl())
+	assert.NoError(t, err)
+	js, err := con.JetStream()
+	assert.NoError(t, err)
+	sub := uuid.NewString()
+
+	_, err = js.AddStream(&nats.StreamConfig{
+		Name:        sub,
+		Description: "",
+		Subjects:    []string{sub},
+	})
+	assert.NoError(t, err)
+
+	_, err = js.AddConsumer(sub, &nats.ConsumerConfig{
+		Durable:    sub,
+		Name:       sub,
+		AckPolicy:  nats.AckExplicitPolicy,
+		MaxDeliver: 10,
+		AckWait:    100 * time.Second,
+	})
+	assert.NoError(t, err)
+
+	var receivedMessages []common.Event[common.TestStructure]
+	firstInterceptorCalled := false
+	secondInterceptorCalled := false
+
+	srv := consumer.NewNatsConsumer[common.TestStructure](js,
+		consumer.NatsConsumerConfiguration{
+			Concurrency:  1,
+			ConsumerName: sub,
+			Stream:       sub,
+		},
+		func(ctx context.Context, event *common.Event[common.TestStructure]) (consumer.ConfirmationType, error) {
+			receivedMessages = append(receivedMessages, *event)
+
+			return consumer.ConfirmationTypeAck, nil
+		}, consumer.WithNatsOptionInterceptors(func(next consumer.UnaryFunc) consumer.UnaryFunc {
+			return func(ctx context.Context, request consumer.MessageRequest) (consumer.ConfirmationType, error) {
+				if len(receivedMessages) == 0 {
+					assert.False(t, firstInterceptorCalled)
+					assert.False(t, secondInterceptorCalled)
+					firstInterceptorCalled = true
+				}
+
+				return next(ctx, request)
+			}
+		}, func(next consumer.UnaryFunc) consumer.UnaryFunc {
+			return func(ctx context.Context, request consumer.MessageRequest) (consumer.ConfirmationType, error) {
+				if len(receivedMessages) == 0 {
+					assert.True(t, firstInterceptorCalled)
+					assert.False(t, secondInterceptorCalled)
+					secondInterceptorCalled = true
+				}
+				return next(ctx, request)
+			}
+		}))
+
+	assert.NoError(t, srv.ConsumeAsync())
+
+	pub := publisher.NewNatsPublisher[common.TestStructure](con, sub)
+
+	expected := []common.Event[common.TestStructure]{
+		{
+			Record: &common.TestStructure{Message: "test213", Code: 1},
+			MetaData: common.MetaData{
+				CrudOperation:       common.ChangeEventTypeCreated,
+				CrudOperationReason: "created_1234",
+			},
+		},
+		{
+			Record: &common.TestStructure{Message: "321321321", Code: 2},
+			MetaData: common.MetaData{
+				CrudOperation:       common.ChangeEventTypeUpdated,
+				CrudOperationReason: "updated_12312",
+			},
+		},
+	}
+
+	for _, e := range expected {
+		assert.NoError(t, pub.Publish(context.TODO(), *e.Record, e.MetaData, &publisher.PublishOptions{ // nolint
+			Headers: map[string][]string{
+				common.ContentTypeHeader: {string(common.ContentTypeProtoJSON)},
+			},
+		}))
+	}
+
+	time.Sleep(5 * time.Second)
+
+	assert.Len(t, receivedMessages, 2)
+
+	assert.NoError(t, srv.Close())
+	assert.NoError(t, srv.Close())
+	assert.True(t, firstInterceptorCalled)
+	assert.True(t, secondInterceptorCalled)
+}
+
 func TestCloseWhileReading(t *testing.T) {
 	con, err := nats.Connect(getNatsUrl(), nats.Timeout(30*time.Second), nats.ReconnectWait(30*time.Second))
 	assert.NoError(t, err)
