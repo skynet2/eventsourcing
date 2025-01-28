@@ -5,16 +5,18 @@ on:
       - master
 
 jobs:
-  download:
+  lint:
     runs-on: ubuntu-latest
+    container: golang:1.23-alpine
+    env:
+      ENVIRONMENT: ci
     steps:
-      - uses: actions/checkout@v3
-      - run: rm -rf .git
-      - uses: actions/upload-artifact@v3
+      - uses: actions/checkout@v4
+      - uses: golangci/golangci-lint-action@v6.1.1
+        if: github.ref != 'refs/heads/master' && github.ref != 'refs/heads/qa' && github.ref != 'refs/heads/uat'
         with:
-          path: ./
-          name: code
-          retention-days: 1
+          version: latest
+          args: --timeout=5m --tests=false ./...
   test:
     runs-on: ubuntu-latest
     container: golang:1.23-alpine
@@ -26,14 +28,8 @@ jobs:
     needs: [ download ]
     steps:
       - run: apk add build-base
-      - uses: actions/download-artifact@v3
-        with:
-          path: /source
-          name: code
-      - run: apk update && apk add --no-cache --update curl openssl git openssh-client build-base && mkdir -p /root/.ssh && mkdir -p /source
-      - run: cd /source && go mod vendor
-      - run: wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /source/
-      - run: cd /source && ./golangci-lint run ./... --timeout 5m
+      - uses: actions/checkout@v4
+      - run: go mod vendor
       - run: cd /source && environment=ci NATS_HOST="nats://nats:4222" go test -json -coverprofile=/root/coverage_temp.txt -covermode=atomic ./... > /root/test.json
       - run: cat /root/coverage_temp.txt | grep  -v "_mock.go" | grep -v "_mocks.go" > /root/coverage.txt || true
       - name: Upload coverage report
